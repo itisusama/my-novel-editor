@@ -2,7 +2,7 @@ import { Note } from "@/lib/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Plus, Trash } from "lucide-react";
+import { Loader2, Plus, Trash, AlertCircle } from "lucide-react";
 import { collection, onSnapshot, query, orderBy, addDoc, deleteDoc, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useEffect, useState } from "react";
@@ -15,20 +15,35 @@ interface NoteListProps {
 export function NoteList({ selectedNoteId, onSelectNote }: NoteListProps) {
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
-    const q = query(collection(db, "notes"), orderBy("updatedAt", "desc"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const noteList: Note[] = [];
-      snapshot.forEach((doc) => {
-        noteList.push({ id: doc.id, ...doc.data() } as Note);
-      });
-      setNotes(noteList);
-      setLoading(false);
-    });
+    try {
+      const q = query(collection(db, "notes"), orderBy("updatedAt", "desc"));
+      const unsubscribe = onSnapshot(q, 
+        (snapshot) => {
+          const noteList: Note[] = [];
+          snapshot.forEach((doc) => {
+            noteList.push({ id: doc.id, ...doc.data() } as Note);
+          });
+          setNotes(noteList);
+          setLoading(false);
+          setError(null);
+        },
+        (error) => {
+          console.error("Error fetching notes:", error);
+          setError("Failed to load notes. Please check your connection and try again.");
+          setLoading(false);
+        }
+      );
 
-    return () => unsubscribe();
+      return () => unsubscribe();
+    } catch (error) {
+      console.error("Error setting up Firebase listener:", error);
+      setError("Failed to connect to the database. Please check your configuration.");
+      setLoading(false);
+    }
   }, []);
 
   const createNote = async () => {
@@ -41,9 +56,10 @@ export function NoteList({ selectedNoteId, onSelectNote }: NoteListProps) {
       const docRef = await addDoc(collection(db, "notes"), newNote);
       onSelectNote({ id: docRef.id, ...newNote });
     } catch (error) {
+      console.error("Error creating note:", error);
       toast({
         title: "Error",
-        description: "Failed to create note",
+        description: "Failed to create note. Please try again.",
         variant: "destructive",
       });
     }
@@ -57,9 +73,10 @@ export function NoteList({ selectedNoteId, onSelectNote }: NoteListProps) {
         description: "Note deleted",
       });
     } catch (error) {
+      console.error("Error deleting note:", error);
       toast({
         title: "Error",
-        description: "Failed to delete note",
+        description: "Failed to delete note. Please try again.",
         variant: "destructive",
       });
     }
@@ -69,6 +86,15 @@ export function NoteList({ selectedNoteId, onSelectNote }: NoteListProps) {
     return (
       <div className="flex items-center justify-center h-full">
         <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-4 text-center">
+        <AlertCircle className="h-8 w-8 text-destructive mb-2" />
+        <p className="text-sm text-muted-foreground">{error}</p>
       </div>
     );
   }

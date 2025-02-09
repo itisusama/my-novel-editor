@@ -1,6 +1,7 @@
-import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+import { initializeApp, type FirebaseApp } from "firebase/app";
+import { getFirestore, type Firestore } from "firebase/firestore";
 
+// Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyBUVBKQxe3x26bqhCoyw1H4IuQEyO2elMw",
   authDomain: "noveller-fcc59.firebaseapp.com",
@@ -11,5 +12,16 @@ const firebaseConfig = {
   measurementId: "G-0TFV6CVCYX"
 };
 
-export const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+let app: FirebaseApp;
+let db: Firestore;
+
+try {
+  app = initializeApp(firebaseConfig);
+  db = getFirestore(app);
+  console.log('Firebase initialized successfully');
+} catch (error) {
+  console.error('Error initializing Firebase:', error);
+  throw error;
+}
+
+export { app, db };

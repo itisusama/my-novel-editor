@@ -20,7 +20,7 @@ export function NoteEditor({ note }: NoteEditorProps) {
   useEffect(() => {
     setLocalTitle(note.title);
     setLocalContent(note.content);
-  }, [note.id]); // Only reset when note.id changes
+  }, [note.id, note.title, note.content]); // Update when any note property changes
 
   const saveNote = useCallback(
     debounce(async (title: string, content: string) => {
